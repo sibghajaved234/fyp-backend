@@ -303,7 +303,7 @@ app.use('*', (req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 // server.listen(PORT, () => {
 //   console.log("hello server")
 //   console.log(`✅ Server running on port ${PORT}`);
@@ -314,30 +314,16 @@ const PORT = process.env.PORT || 5000;
 
 // Server start
 async function startServer() {
-  connectDB()
-  
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n' + '='.repeat(50));
-    console.log('🚀 MongoDB Medicine API Server Running!');
-    console.log('='.repeat(50));
-    
-    const networkInterfaces = os.networkInterfaces();
-    let localIP = '';
-    
-    Object.keys(networkInterfaces).forEach((interfaceName) => {
-      networkInterfaces[interfaceName].forEach((iface) => {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          localIP = iface.address;
-        }
-      });
-    });
-    
-    console.log(`📡 Local URL: http://localhost:${PORT}`);
-    console.log(`🌐 Network URL: http://${localIP}:${PORT}`);
-    console.log('\n📌 ESP32 mein ye URL use karo:');
-    console.log(`   http://${localIP}:${PORT}/api/medicines/today`);
-    console.log('='.repeat(50));
-  });
+  const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log('\n==================================');
+  console.log('🚀 MongoDB Medicine API Server Running!');
+  console.log('==================================');
+
+  console.log(`📡 Local: http://localhost:${PORT}`);
+  console.log(`🌐 Railway Port: ${PORT}`);
+});
 }
 
 startServer();
