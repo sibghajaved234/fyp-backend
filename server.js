@@ -25,6 +25,7 @@ const connectDB = require('./src/config/database');
 const Prescription = require('./src/models/Prescription');
 
 const app = express();
+app.set("trust proxy",1)
 const server = http.createServer(app);
 
 // Socket.io setup
