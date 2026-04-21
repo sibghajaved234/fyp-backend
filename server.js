@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 global.__base = __dirname + '/src/';
+const http = require('http');
 const socketIo = require('socket.io');
 const os = require("os")
 const authRoutes = require('./routes/authRoutes.js');
