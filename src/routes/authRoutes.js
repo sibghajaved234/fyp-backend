@@ -23,5 +23,5 @@ router.post('/verify-otp', verifyOTP);
 router.post('/resend-otp', resendOTP);
 router.get('/verify-email/:token', verifyEmail);
 router.post('/logout', protect, logout);
-
+console.log("✅ AUTH ROUTES LOADED");
 module.exports = router;
