@@ -7,7 +7,8 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 global.__base = __dirname + '/src/';
-
+const socketIo = require('socket.io');
+const os = require("os")
 const authRoutes = require('./routes/authRoutes.js');
 const patientRoutes = require('./routes/patientRoutes.js');
 const doctorRoutes = require('./routes/doctorRoutes.js');
@@ -20,16 +21,30 @@ const connectDB = require('./config/database.js');
 const Prescription = require('./models/Prescription.js');
 
 const app = express();
-
+// Import socket handler
+const { initializeSocket } = require('./src/sockets/socketHandler');
 // ================= TRUST PROXY (IMPORTANT FOR RAILWAY) =================
 app.set("trust proxy", 1);
-
+const server = http.createServer(app);
 // ================= RATE LIMIT =================
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100
 });
+// Socket.io setup
+const io = socketIo(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || '*',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 
+// Initialize socket handlers
+initializeSocket(io);
+
+// Make io accessible in routes
+app.set('io', io);
 // ================= MIDDLEWARE =================
 app.use(helmet());
 app.use(compression());
