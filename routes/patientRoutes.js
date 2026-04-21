@@ -18,6 +18,8 @@ const {
 
 // All routes require authentication and patient role
 router.get('/today-medicine-all')
+// TODAY'S MEDICINES ROUTES
+router.get('/medicines/today', getTodaysMedicines);
 router.use(protect);
 router.use(authorize('patient'));
 
