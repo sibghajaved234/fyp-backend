@@ -22,7 +22,7 @@ const Prescription = require('./models/Prescription.js');
 
 const app = express();
 // Import socket handler
-const { initializeSocket } = require('./src/sockets/socketHandler');
+const { initializeSocket } = require('./sockets/socketHandler');
 // ================= TRUST PROXY (IMPORTANT FOR RAILWAY) =================
 app.set("trust proxy", 1);
 const server = http.createServer(app);
