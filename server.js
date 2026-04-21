@@ -4,18 +4,20 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 require('dotenv').config();
+global.__base = __dirname + '/src/';
 
-const authRoutes = require('./src/routes/authRoutes');
-const patientRoutes = require('./src/routes/patientRoutes');
-const doctorRoutes = require('./src/routes/doctorRoutes');
-const deviceRoutes = require('./src/routes/deviceRoutes');
-const alertRoutes = require('./src/routes/alertRoutes');
-const medicineRoutes = require('./src/routes/medicineRoutes');
+const authRoutes = require(__base + 'routes/authRoutes');
+const patientRoutes = require(__base + 'routes/patientRoutes');
+const doctorRoutes = require(__base + 'routes/doctorRoutes');
+const deviceRoutes = require(__base + 'routes/deviceRoutes');
+const alertRoutes = require(__base + 'routes/alertRoutes');
+const medicineRoutes = require(__base + 'routes/medicineRoutes');
 
-const errorHandler = require('./src/middleware/errorHandler');
-const connectDB = require('./src/config/database');
-const Prescription = require('./src/models/Prescription');
+const errorHandler = require(__base + 'middleware/errorHandler');
+const connectDB = require(__base + 'config/database');
+const Prescription = require(__base + 'models/Prescription');
 
 const app = express();
 
