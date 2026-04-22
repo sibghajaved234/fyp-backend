@@ -17,11 +17,13 @@ router.post('/register', protect,registerDevice);
 // 🔵 ESP32 updates IP after WiFi connect
 router.post('/update-ip', updateDeviceIP);
 
+// 🔵 Mobile fetch device
+router.get('/:deviceId', getDevice);
+
 
 router.delete('/:deviceId', protect, unpairDevice);
 
-// 🔵 Mobile fetch device
-router.get('/:deviceId', getDevice);
+
 
 // 🔵 ESP32 fetch schedule
 router.get('/:deviceId/schedule', getSchedule);
