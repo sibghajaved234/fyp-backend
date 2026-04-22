@@ -161,6 +161,13 @@ const updateDeviceIP = async (req, res) => {
   try {
     const { deviceId, ipAddress } = req.body;
 
+    if (!deviceId || !ipAddress) {
+      return res.status(400).json({
+        success: false,
+        message: "deviceId and ipAddress required"
+      });
+    }
+
     const device = await Device.findOneAndUpdate(
       { deviceId },
       {
@@ -172,16 +179,25 @@ const updateDeviceIP = async (req, res) => {
     );
 
     if (!device) {
-      return res.status(404).json({ message: "Device not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Device not found"
+      });
     }
 
-    res.json({ success: true, device });
+    return res.json({
+      success: true,
+      message: "IP updated",
+      device
+    });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
-
 
 const getDevice = async (req, res) => {
   try {
