@@ -403,82 +403,135 @@ const getProfile = async (req, res) => {
 // @desc    Get today's medicines for patient
 // @route   GET /api/patient/medicines/today
 // @access  Private (Patient)
+// const getTodaysMedicines = async (req, res) => {
+//   try {
+//     const patientId = req.userId;
+
+//     // Get current date range (start and end of today)
+//     const startOfDay = new Date();
+//     startOfDay.setHours(0, 0, 0, 0);
+
+//     const endOfDay = new Date();
+//     endOfDay.setHours(23, 59, 59, 999);
+
+//     // Find active prescriptions for this patient
+//     const activePrescriptions = await Prescription.find({
+//       patientId,
+//       isActive: true,
+//       startDate: { $lte: new Date() },
+//       endDate: { $gte: new Date() },
+//     }).populate("doctorId", "name");
+
+//     if (!activePrescriptions.length) {
+//       return res.json({
+//         success: true,
+//         data: [],
+//         message: "No active prescriptions found",
+//       });
+//     }
+
+//     // Get all medicines from active prescriptions
+//     let todaysMedicines = [];
+
+//     activePrescriptions.forEach((prescription) => {
+//       prescription.medicines.forEach((medicine) => {
+//         // Check if medicine should be taken today based on frequency
+//         const shouldTakeToday = checkIfMedicineShouldBeTakenToday(medicine);
+
+//         if (shouldTakeToday) {
+//           // Get today's schedule for this medicine
+//           const todaysSchedule = getTodaysSchedule(medicine);
+
+//           todaysMedicines.push({
+//             _id: medicine._id,
+//             prescriptionId: prescription._id,
+//             name: medicine.name,
+//             dosage: medicine.dosage,
+//             form: medicine.form,
+//             frequency: medicine.frequency,
+//             instructions: medicine.instructions,
+//             times: todaysSchedule, // Array of time slots for today
+//             doctorName: prescription.doctorId?.name,
+//             diagnosis: prescription.diagnosis,
+//             startDate: prescription.startDate,
+//             endDate: prescription.endDate,
+//           });
+//         }
+//       });
+//     });
+
+//     // Sort by time
+//     todaysMedicines.sort((a, b) => {
+//       if (a.times && b.times) {
+//         return a.times[0]?.time.localeCompare(b.times[0]?.time);
+//       }
+//       return 0;
+//     });
+
+//     res.json({
+//       success: true,
+//       data: todaysMedicines,
+//       count: todaysMedicines.length,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching today's medicines:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Error fetching today's medicines",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const getTodaysMedicines = async (req, res) => {
   try {
-    const patientId = req.userId;
+    // 📅 Get today's date range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // Get current date range (start and end of today)
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // Find active prescriptions for this patient
-    const activePrescriptions = await Prescription.find({
-      patientId,
+    // 📦 Get ALL active prescriptions for today
+    const prescriptions = await Prescription.find({
       isActive: true,
-      startDate: { $lte: new Date() },
-      endDate: { $gte: new Date() },
-    }).populate("doctorId", "name");
-
-    if (!activePrescriptions.length) {
-      return res.json({
-        success: true,
-        data: [],
-        message: "No active prescriptions found",
-      });
-    }
-
-    // Get all medicines from active prescriptions
-    let todaysMedicines = [];
-
-    activePrescriptions.forEach((prescription) => {
-      prescription.medicines.forEach((medicine) => {
-        // Check if medicine should be taken today based on frequency
-        const shouldTakeToday = checkIfMedicineShouldBeTakenToday(medicine);
-
-        if (shouldTakeToday) {
-          // Get today's schedule for this medicine
-          const todaysSchedule = getTodaysSchedule(medicine);
-
-          todaysMedicines.push({
-            _id: medicine._id,
-            prescriptionId: prescription._id,
-            name: medicine.name,
-            dosage: medicine.dosage,
-            form: medicine.form,
-            frequency: medicine.frequency,
-            instructions: medicine.instructions,
-            times: todaysSchedule, // Array of time slots for today
-            doctorName: prescription.doctorId?.name,
-            diagnosis: prescription.diagnosis,
-            startDate: prescription.startDate,
-            endDate: prescription.endDate,
-          });
-        }
-      });
+      startDate: { $lte: today },
+      endDate: { $gte: today }
     });
 
-    // Sort by time
-    todaysMedicines.sort((a, b) => {
-      if (a.times && b.times) {
-        return a.times[0]?.time.localeCompare(b.times[0]?.time);
-      }
-      return 0;
+    let allMedicines = [];
+
+    // 🔁 Flatten all medicines from all patients
+    prescriptions.forEach((prescription) => {
+      prescription.medicines.forEach((medicine) => {
+        medicine.times.forEach((timeSlot) => {
+          allMedicines.push({
+            patientId: prescription.patientId,
+            prescriptionId: prescription._id,
+            medicineName: medicine.name,
+            dosage: medicine.dosage,
+            compartment: medicine.compartmentNumber,
+            time: timeSlot.time,
+            taken: timeSlot.taken,
+            instructions: medicine.instructions
+          });
+        });
+      });
     });
 
     res.json({
       success: true,
-      data: todaysMedicines,
-      count: todaysMedicines.length,
+      date: today.toISOString().split("T")[0],
+      total: allMedicines.length,
+      medicines: allMedicines
     });
+
   } catch (error) {
-    console.error("Error fetching today's medicines:", error);
+    console.error("getTodaysMedicines error:", error);
     res.status(500).json({
       success: false,
-      message: "Error fetching today's medicines",
-      error: error.message,
+      message: "Server Error",
+      error: error.message
     });
   }
 };

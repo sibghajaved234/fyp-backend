@@ -6,7 +6,8 @@ const {
   updateDeviceIP,
   getDevice,
   getSchedule,
-  medicineTaken
+  medicineTaken,
+  unpairDevice
 } = require('../controllers/deviceController');
 const { protect } = require('../middleware/auth');
 
@@ -15,6 +16,9 @@ router.post('/register', protect,registerDevice);
 
 // 🔵 ESP32 updates IP after WiFi connect
 router.post('/update-ip', updateDeviceIP);
+
+
+router.delete('/:deviceId', protect, unpairDevice);
 
 // 🔵 Mobile fetch device
 router.get('/:deviceId', getDevice);

@@ -55,12 +55,8 @@ const registerDevice = async (req, res) => {
       
     } else {
       // Check if device already belongs to another user
-      if (device.owner && device.owner.toString() !== userId) {
-        return res.status(403).json({ 
-          success: false, 
-          message: "This device is already registered to another user" 
-        });
-      }
+      // Allow overwrite (reassign device)
+      device.owner = userId;
       
       // Update existing device
       const previousOwner = device.owner;
@@ -105,6 +101,58 @@ const registerDevice = async (req, res) => {
       success: false, 
       message: "Failed to register device",
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+
+const unpairDevice = async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const userId = req.userId;
+
+    if (!deviceId) {
+      return res.status(400).json({
+        success: false,
+        message: "Device ID is required"
+      });
+    }
+
+    const device = await Device.findOne({ deviceId });
+
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: "Device not found"
+      });
+    }
+    console.log(device.owner)
+    console.log(userId)
+    // 🔒 Ensure only owner can unpair
+    if (device.owner && device.owner.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to unpair this device"
+      });
+    }
+
+    // ✅ Unpair logic
+    device.owner = null;
+    device.status = "offline";
+    device.lastSeen = new Date();
+
+    await device.save();
+
+    return res.json({
+      success: true,
+      message: "Device unpaired successfully"
+    });
+
+  } catch (err) {
+    console.error("Unpair error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to unpair device"
     });
   }
 };
@@ -205,5 +253,6 @@ module.exports = {
   updateDeviceIP,
   getDevice,
   getSchedule,
-  medicineTaken
+  medicineTaken,
+  unpairDevice
 };
