@@ -299,80 +299,128 @@ const getDevice = async (req, res) => {
 };
 
 // replace existing getSchedule with your new logic
+const moment = require("moment");
+const mongoose = require("mongoose");
+
 const getSchedule = async (req, res) => {
   try {
     const { deviceId } = req.params;
 
+    // 🔹 Validate deviceId
     if (!deviceId) {
       return res.status(400).json({
         success: false,
-        message: "deviceId is required"
+        message: "deviceId is required",
       });
     }
 
+    // 🔹 Find device
     const device = await Device.findOne({ deviceId });
 
     if (!device) {
       return res.status(404).json({
         success: false,
-        message: "Device not found"
+        message: "Device not found",
       });
     }
 
     const ownerId = device.ownerId;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    if (!ownerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Device has no owner assigned",
+      });
+    }
 
+    // 🔹 Full-day range (FIXED ISSUE)
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // 🔹 Ensure correct ObjectId type
+    let patientId = ownerId;
+    if (typeof ownerId === "string") {
+      patientId = new mongoose.Types.ObjectId(ownerId);
+    }
+
+    // 🔹 Fetch prescriptions
     const prescriptions = await Prescription.find({
-      patientId: ownerId,
+      patientId: patientId,
       isActive: true,
-      startDate: { $lte: today },
-      endDate: { $gte: today }
+      startDate: { $lte: endOfDay },
+      endDate: { $gte: startOfDay },
     });
+
+    // 🔹 Debug logs (remove in production)
+    console.log("Device:", deviceId);
+    console.log("Owner:", ownerId);
+    console.log("Prescriptions found:", prescriptions.length);
 
     let medicines = [];
 
     prescriptions.forEach((prescription) => {
-      prescription.medicines.forEach((medicine) => {
-        medicine.times.forEach((timeSlot) => {
+      if (!prescription.medicines || !Array.isArray(prescription.medicines)) {
+        return; // skip invalid data
+      }
 
-          // 🔥 ONLY CHANGE IS HERE
-          const formattedTime = moment(timeSlot.time, ["h:mm A", "HH:mm"])
-            .format("HH:mm");
+      prescription.medicines.forEach((medicine) => {
+        if (!medicine.times || !Array.isArray(medicine.times)) {
+          return;
+        }
+
+        medicine.times.forEach((timeSlot) => {
+          // 🔹 Validate time
+          const parsed = moment(
+            timeSlot.time,
+            ["h:mm A", "HH:mm"],
+            true
+          );
+
+          if (!parsed.isValid()) {
+            console.warn("Invalid time format:", timeSlot.time);
+            return;
+          }
+
+          const formattedTime = parsed.format("HH:mm");
 
           medicines.push({
-            medicineName: medicine.name,
-            dosage: medicine.dosage,
-            compartment: medicine.compartmentNumber,
-            time: formattedTime,   // ✅ use formatted time
-            taken: timeSlot.taken,
-            instructions: medicine.instructions
+            medicineName: medicine.name || "Unknown",
+            dosage: medicine.dosage || "",
+            compartment: medicine.compartmentNumber ?? null,
+            time: formattedTime,
+            taken: timeSlot.taken ?? false,
+            instructions: medicine.instructions || "",
           });
-
         });
       });
     });
 
-    res.json({
+    // 🔹 Sort by time (optional but useful)
+    medicines.sort((a, b) => a.time.localeCompare(b.time));
+
+    // 🔹 Response
+    return res.status(200).json({
       success: true,
       deviceId,
       ownerId,
-      date: today.toISOString().split("T")[0],
+      date: startOfDay.toISOString().split("T")[0],
       total: medicines.length,
-      medicines
+      medicines,
     });
 
   } catch (error) {
     console.error("getSchedule error:", error);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Server Error",
-      error: error.message
+      error: error.message || "Unknown error",
     });
   }
 };
-
 
 const medicineTaken = async (req, res) => {
   try {
