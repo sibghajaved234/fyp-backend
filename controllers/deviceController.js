@@ -315,7 +315,7 @@ const getSchedule = async (req, res) => {
 
     // 🔹 Find device
     const device = await Device.findOne({ deviceId });
-
+    
     if (!device) {
       return res.status(404).json({
         success: false,
@@ -323,8 +323,8 @@ const getSchedule = async (req, res) => {
       });
     }
 
-    const ownerId = device.ownerId;
-
+    const ownerId = device.owner;
+    
     if (!ownerId) {
       return res.status(400).json({
         success: false,
