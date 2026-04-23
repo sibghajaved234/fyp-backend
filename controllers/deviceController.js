@@ -1,4 +1,5 @@
 const Device = require("../models/Device");
+const Prescription = require("../models/Prescription");
 
 // POST /api/device/register
 const registerDevice = async (req, res) => {
@@ -182,6 +183,84 @@ const updateDeviceIP = async (req, res) => {
   }
 };
 
+const getDeviceTodaysMedicines = async (req, res) => {
+  try {
+    const { deviceId } = req.params; // or req.body
+
+    if (!deviceId) {
+      return res.status(400).json({
+        success: false,
+        message: "deviceId is required"
+      });
+    }
+
+    // 🔍 Step 1: Find device owner
+    const device = await Device.findOne({ deviceId });
+
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: "Device not found"
+      });
+    }
+
+    const ownerId = device.ownerId;
+
+    // 📅 Step 2: Get today's date range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    // 📦 Step 3: Get prescriptions for this owner ONLY
+    const prescriptions = await Prescription.find({
+      patientId: ownerId,
+      isActive: true,
+      startDate: { $lte: today },
+      endDate: { $gte: today }
+    });
+
+    let medicines = [];
+
+    // 🔁 Step 4: Flatten medicines
+    prescriptions.forEach((prescription) => {
+      prescription.medicines.forEach((medicine) => {
+        medicine.times.forEach((timeSlot) => {
+          medicines.push({
+            patientId: prescription.patientId,
+            prescriptionId: prescription._id,
+            medicineName: medicine.name,
+            dosage: medicine.dosage,
+            compartment: medicine.compartmentNumber,
+            time: timeSlot.time,
+            taken: timeSlot.taken,
+            instructions: medicine.instructions
+          });
+        });
+      });
+    });
+
+    // 📤 Response
+    res.json({
+      success: true,
+      deviceId,
+      ownerId,
+      date: today.toISOString().split("T")[0],
+      total: medicines.length,
+      medicines
+    });
+
+  } catch (error) {
+    console.error("getDeviceTodaysMedicines error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message
+    });
+  }
+};
+
 
 const getDevice = async (req, res) => {
   try {
@@ -200,26 +279,75 @@ const getDevice = async (req, res) => {
   }
 };
 
+// replace existing getSchedule with your new logic
 const getSchedule = async (req, res) => {
   try {
     const { deviceId } = req.params;
 
+    if (!deviceId) {
+      return res.status(400).json({
+        success: false,
+        message: "deviceId is required"
+      });
+    }
+
+    // 🔍 Find device owner
     const device = await Device.findOne({ deviceId });
 
     if (!device) {
-      return res.status(404).json({ message: "Device not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Device not found"
+      });
     }
 
-    // simple static or DB-based schedule
-    const schedule = [
-      { time: "08:00", compartment: 1, name: "Panadol" },
-      { time: "14:00", compartment: 2, name: "Brufen" }
-    ];
+    const ownerId = device.ownerId;
 
-    res.json({ schedule });
+    // 📅 Today range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    // 📦 Get prescriptions for this owner
+    const prescriptions = await Prescription.find({
+      patientId: ownerId,
+      isActive: true,
+      startDate: { $lte: today },
+      endDate: { $gte: today }
+    });
+
+    let medicines = [];
+
+    prescriptions.forEach((prescription) => {
+      prescription.medicines.forEach((medicine) => {
+        medicine.times.forEach((timeSlot) => {
+          medicines.push({
+            medicineName: medicine.name,
+            dosage: medicine.dosage,
+            compartment: medicine.compartmentNumber,
+            time: timeSlot.time,
+            taken: timeSlot.taken,
+            instructions: medicine.instructions
+          });
+        });
+      });
+    });
+
+    res.json({
+      success: true,
+      deviceId,
+      ownerId,
+      date: today.toISOString().split("T")[0],
+      total: medicines.length,
+      medicines
+    });
+
+  } catch (error) {
+    console.error("getSchedule error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message
+    });
   }
 };
 
