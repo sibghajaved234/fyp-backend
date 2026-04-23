@@ -299,8 +299,7 @@ const getDevice = async (req, res) => {
 };
 
 // replace existing getSchedule with your new logic
-const moment = require("moment");
-const mongoose = require("mongoose");
+
 
 const getSchedule = async (req, res) => {
   try {
