@@ -1,6 +1,6 @@
 const Device = require("../models/Device");
 const Prescription = require("../models/Prescription");
-
+const moment = require("moment"); 
 // POST /api/device/register
 const registerDevice = async (req, res) => {
   try {
@@ -310,7 +310,6 @@ const getSchedule = async (req, res) => {
       });
     }
 
-    // 🔍 Find device owner
     const device = await Device.findOne({ deviceId });
 
     if (!device) {
@@ -322,11 +321,9 @@ const getSchedule = async (req, res) => {
 
     const ownerId = device.ownerId;
 
-    // 📅 Today range
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 📦 Get prescriptions for this owner
     const prescriptions = await Prescription.find({
       patientId: ownerId,
       isActive: true,
@@ -339,14 +336,20 @@ const getSchedule = async (req, res) => {
     prescriptions.forEach((prescription) => {
       prescription.medicines.forEach((medicine) => {
         medicine.times.forEach((timeSlot) => {
+
+          // 🔥 ONLY CHANGE IS HERE
+          const formattedTime = moment(timeSlot.time, ["h:mm A", "HH:mm"])
+            .format("HH:mm");
+
           medicines.push({
             medicineName: medicine.name,
             dosage: medicine.dosage,
             compartment: medicine.compartmentNumber,
-            time: timeSlot.time,
+            time: formattedTime,   // ✅ use formatted time
             taken: timeSlot.taken,
             instructions: medicine.instructions
           });
+
         });
       });
     });
